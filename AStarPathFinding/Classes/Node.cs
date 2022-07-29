@@ -43,13 +43,13 @@ namespace AStarPathFinding.Classes
         /// </param>
         public Node(int hCost, int gCost, int fCost, int row, int col, Node previousNode)
         {
-            HCost = hCost;
-            GCost = gCost;
-            FCost = fCost;
-            Row = row;
-            Col = col;
-            PreviousNode = previousNode;
-            NextNode = null;
+            this.HCost = hCost;
+            this.GCost = gCost;
+            this.FCost = fCost;
+            this.Row = row;
+            this.Col = col;
+            this.PreviousNode = previousNode;
+            this.NextNode = null;
         }
     }
 }
