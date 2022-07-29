@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -68,6 +69,70 @@ namespace AStarPathFinding.Classes
             this._tplEndingPosition = tplEndingNode;
         }
 
+        /// <summary>
+        /// Exports the map as a Bitmap
+        /// </summary>
+        /// <param name="scale">
+        /// This optional parameter allows us to scale the map to a certain level. Usefull when the maps are small and we want
+        /// to make them readable to the human eye.
+        /// Must be an integer greater or equal to one
+        /// </param>
+        /// <returns>
+        /// The Bitmap that corresponds to the map
+        /// </returns>
+        public Bitmap ExportMapAsBitmap(int scale = 1)
+        {
+            //Checks if the scaling is valid
+            if(scale < 1)
+            {
+                throw new InvalidDataException("The scale must be greater or equal to one.");
+            }
+
+            Bitmap bmp = new Bitmap(this._arr2DMap.Length * scale, this._arr2DMap[0].Length * scale);
+
+            //For each row
+            for(int i = 0;i < this._arr2DMap.Length;i++)
+            {
+                //For each col
+                for (int j = 0; j < this._arr2DMap[i].Length;j++)
+                {
+                    Color color;
+
+                    //If it's the starting position
+                    if (i == this._tplStartingPosition.Item1 && j == this._tplStartingPosition.Item2)
+                    {
+                        color = Color.Red;
+                    }
+                    else if (i == this._tplEndingPosition.Item1 && j == this._tplEndingPosition.Item2) //If it's the ending position
+
+                    {
+                        color = Color.Green;
+                    }
+                    else if (this._arr2DMap[i][j] == (int)EnumPositionValues.Nothing)      //If it's nothing
+                    {
+                        color = Color.White;
+                    }
+                    else
+                    {
+                        color = Color.Black;
+                    }
+
+                    //Adds the color to the right pixels
+                    int pixelRowWithScaling = i * scale;
+                    int pixelColWithScaling = j * scale;
+
+                    for(int k = 0;k < scale;k++)
+                    {
+                        for(int l = 0;l < scale;l++)
+                        {
+                            bmp.SetPixel(pixelRowWithScaling + k, pixelColWithScaling + l, color);
+                        }
+                    }
+                }
+            }
+
+            return bmp;
+        }
 
         /// <summary>
         /// Takes a map and checks whether its valid or not.

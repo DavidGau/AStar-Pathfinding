@@ -1,4 +1,5 @@
 ﻿using AStarPathFinding.Classes;
+using System.Drawing;
 
 uint[][] arrMap = new uint[][]
 {
@@ -14,4 +15,6 @@ uint[][] arrMap = new uint[][]
 (uint, uint) tplEndingNode = (5, 7);
 
 AStar AStar = new AStar(arrMap, tplStartingNode, tplEndingNode);
+Bitmap bmp = AStar.ExportMapAsBitmap(100);
+bmp.Save("test.png");
 Console.WriteLine("=== End of the program ===");
