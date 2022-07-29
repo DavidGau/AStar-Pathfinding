@@ -27,6 +27,10 @@ namespace AStarPathFinding.Classes
         private uint[][] _arr2DMap { get; set; }
         private (uint,uint) _tplStartingPosition { get; set; }
         private (uint,uint) _tplEndingPosition { get; set; }
+        private List<Node> _lstVisitedNodes { get; set; }
+        private List<Node> _lstPotentialNodes { get; set; }
+
+        private (int, int) _tplMapDimensions { get; set; }
 
 
         /// <summary>
@@ -65,8 +69,163 @@ namespace AStarPathFinding.Classes
             }
 
             this._arr2DMap = arr2DMap;
+            this._tplMapDimensions = (arr2DMap.Length, arr2DMap[0].Length);
             this._tplStartingPosition = tplStartingNode;
             this._tplEndingPosition = tplEndingNode;
+            this._lstVisitedNodes = new List<Node>();
+            this._lstPotentialNodes = new List<Node>();
+        }
+
+
+
+        /// <summary>
+        /// Takes a node and returns the list of all the nodes
+        /// that surrounds it. (Logically, there won't be more than 8 nodes)
+        /// </summary>
+        /// <param name="currentNode">
+        /// The node we want to know the surrounding of
+        /// </param>
+        /// <returns>
+        /// The list of nodes that surround the current node
+        /// </returns>
+        private List<Node> GetSurroundingNodes(Node currentNode)
+        {
+            List<Node> lstSurroundingNodes = new List<Node>();
+
+            //Checks up,middle,down
+            for(int i = -1;i < 2;i++)
+            {
+                //Checks left,middle,right
+                for(int j = -1;j < 2;j++)
+                {
+                    //If we're on the current node...
+                    if(i == 0 && j == 0)
+                    {
+                        continue;
+                    }
+
+                    int rowToCheck = currentNode.Row + i;
+                    int colToCheck = currentNode.Col + j;
+
+                    //If we're out of bound
+                    if(rowToCheck < 0 || colToCheck < 0 || rowToCheck >= this._tplMapDimensions.Item1 || colToCheck >= this._tplMapDimensions.Item2)
+                    {
+                        continue;
+                    }
+
+                    //If we're on an obstacle
+                    if (this._arr2DMap[rowToCheck][colToCheck] == 1)
+                    {
+                        continue;
+                    }
+
+                    //If we're looking at a node that we already visited
+                    bool hasAlreadyBeenVisited = this._lstVisitedNodes.Any(x => x.Row == rowToCheck && x.Col == colToCheck); //TODO: Vérifier s'il est logique de faire cette vérification
+
+                    if(hasAlreadyBeenVisited)
+                    {
+                        continue;
+                    }
+
+                    //Add the node to the list of surrounding nodes
+                    lstSurroundingNodes.Add(this.CreateNewNode(rowToCheck, colToCheck, currentNode));
+                }
+            }
+
+            return lstSurroundingNodes;
+        }
+
+        /// <summary>
+        /// Takes the row,col of the new Node as well
+        /// as its previousNode and creates the new Node.
+        /// </summary>
+        /// <param name="row">
+        /// The row of the new Node
+        /// </param>
+        /// <param name="col">
+        /// The col of the new Node
+        /// </param>
+        /// <param name="previousNode">
+        /// The previous Node (the one that lead to this one)
+        /// </param>
+        /// <returns>
+        /// The new node
+        /// </returns>
+        private Node CreateNewNode(int row, int col, Node previousNode)
+        {
+            int gCost = this.GetGCost(row, col, previousNode);
+            int hCost = this.GetHCost(row, col);
+            int fCost = gCost + hCost;
+
+            return new Node(hCost, gCost, fCost, row, col, previousNode);
+        }
+
+        /// <summary>
+        /// Takes the previous node as well as the position of the current
+        /// node we want to calculate the G-Cost for.
+        /// 
+        /// The reason why we need the previous G-Cost is because the cost is relative
+        /// to the path it took from the start. A same node has multiple costs depending on the path
+        /// we took to reach it.
+        /// 
+        /// The G-Cost is the distance between the node and the starting node, relative to the path
+        /// we took to get to that node.
+        /// </summary>
+        /// <param name="rowToGo">The row of the new node we want to calculate the G-Cost for</param>
+        /// <param name="colToGo">The column of the new node we want to calculate the G-Cost for</param>
+        /// <param name="previousNode">The node we took to get here</param>
+        /// <returns>
+        /// An int corresponding to the G-Cost of the new node
+        /// </returns>
+        private int GetGCost(int rowToGo, int colToGo, Node previousNode)
+        {
+            int totalGCost = previousNode.GCost;
+
+            //If we move diagonally to get to that node
+            if(previousNode.Row != rowToGo || previousNode.Col != colToGo)
+            {
+                totalGCost += this._movementCost.diagonalMovement;
+            }
+            else //If we move directly to get to that node
+            {
+                totalGCost += this._movementCost.directMovement;
+            }
+
+            return totalGCost;
+        }
+
+
+        /// <summary>
+        /// Takes a new node position and calculates the distance
+        /// between this node and the ending node.
+        /// 
+        /// The H-COst is the distance between the node and the ending node. It does not take into
+        /// account any obstacles, its really just the most direct distance between the current node and the ending node.
+        /// </summary>
+        /// <param name="rowToGo">The node's row</param>
+        /// <param name="colToGo">The node's col</param>
+        /// <returns>
+        /// An int corresponding to the H-Cost of the new node
+        /// </returns>
+        private int GetHCost(int rowToGo, int colToGo)
+        {
+            //Calculates the difference in rows and cols between the current node and the ending node
+            int rowDistanceBetweenCurrentAndEnding = (int)Math.Abs(rowToGo - this._tplEndingPosition.Item1);
+            int colDistanceBetweenCurrentAndEnding = (int)Math.Abs(colToGo - this._tplEndingPosition.Item2);
+
+            //Calculates the number of diagonal steps we can make
+            int nbInDiagonal = Math.Min(rowDistanceBetweenCurrentAndEnding, colDistanceBetweenCurrentAndEnding);
+            rowDistanceBetweenCurrentAndEnding -= nbInDiagonal;
+            colDistanceBetweenCurrentAndEnding -= nbInDiagonal;
+
+            //Takes the first one that is not 0 (one of them surely is 0 after the previous step)
+            int nbInDirect = Math.Max(rowDistanceBetweenCurrentAndEnding, colDistanceBetweenCurrentAndEnding);
+
+            //Calculate the final cost
+            int finalCost = (nbInDiagonal * this._movementCost.diagonalMovement) + (nbInDirect * this._movementCost.directMovement);
+
+            return finalCost;
+
         }
 
         /// <summary>
