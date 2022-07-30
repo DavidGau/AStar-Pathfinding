@@ -8,13 +8,24 @@ uint[][] arrMap = new uint[][]
     new uint[]{1,1,0,1,0,1,1,1},
     new uint[]{1,1,0,1,0,1,1,1},
     new uint[]{1,1,1,1,0,0,0,1},
-    new uint[]{1,1,1,1,1,0,0,1}
+    new uint[]{1,1,1,1,1,0,0,1},
+    new uint[]{1,0,0,0,0,0,0,1},
+    new uint[]{1,0,1,0,1,0,0,1},
+    new uint[]{1,0,1,0,1,1,1,1},
+    new uint[]{0,0,0,0,1,1,1,1},
+    new uint[]{0,1,1,0,1,1,1,1},
+    new uint[]{0,1,1,1,1,1,1,1},
+    new uint[]{0,0,0,0,0,0,0,1},
 };
 
 (uint, uint) tplStartingNode = (1, 1);
-(uint, uint) tplEndingNode = (5, 7);
+(uint, uint) tplEndingNode = (12, 6);
 
 AStar AStar = new AStar(arrMap, tplStartingNode, tplEndingNode);
 Bitmap bmp = AStar.ExportMapAsBitmap(100);
-bmp.Save("test.png");
+bmp.Save("beforeSolved.png");
+Node path = AStar.FindPath();
+Bitmap bmp1 = AStar.ExportMapAsBitmap(100,true);
+bmp1.Save("afterSolved.png");
+
 Console.WriteLine("=== End of the program ===");

@@ -15,8 +15,8 @@ namespace AStarPathFinding.Classes
         public int HCost  { get; set; }
         public int GCost { get; set; }
         public int FCost { get; set; }
-        public int Row { get; set; }
-        public int Col { get; set; }
+        public uint Row { get; set; }
+        public uint Col { get; set; }
         public Node PreviousNode { get; set; }
         public Node? NextNode { get; set; }
 
@@ -41,7 +41,7 @@ namespace AStarPathFinding.Classes
         /// <param name="previousNode">
         /// The node that leaded to this one
         /// </param>
-        public Node(int hCost, int gCost, int fCost, int row, int col, Node previousNode)
+        public Node(int hCost, int gCost, int fCost, uint row, uint col, Node? previousNode)
         {
             this.HCost = hCost;
             this.GCost = gCost;

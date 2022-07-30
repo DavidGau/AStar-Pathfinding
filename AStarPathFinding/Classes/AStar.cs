@@ -31,6 +31,7 @@ namespace AStarPathFinding.Classes
         private List<Node> _lstPotentialNodes { get; set; }
 
         private (int, int) _tplMapDimensions { get; set; }
+        private Node? _pathFound { get; set; }
 
 
         /// <summary>
@@ -74,9 +75,102 @@ namespace AStarPathFinding.Classes
             this._tplEndingPosition = tplEndingNode;
             this._lstVisitedNodes = new List<Node>();
             this._lstPotentialNodes = new List<Node>();
+            this._pathFound = null;
         }
 
 
+        /// <summary>
+        /// Finds the shortest path possible from the starting node
+        /// to do ending node.
+        /// 
+        /// Note: Takes into account that there IS a solution.
+        /// </summary>
+        /// <returns>
+        /// Returns the last node, from which we can recreate the entire
+        /// path using the "previousNode" property.
+        /// </returns>
+        public Node FindPath()
+        {
+            //Create the starting node
+            Node startingNode = new Node(0, 0, 0, this._tplStartingPosition.Item1, this._tplStartingPosition.Item2, null);
+
+            //Initialize the list of potential nodes
+            this._lstPotentialNodes = this.GetSurroundingNodes(startingNode);
+
+            //Initialize the current Node the algorithm is on
+            Node currentNode = startingNode;
+
+            bool hasSolution = false;
+
+            //While the solution has not been found
+            while(!hasSolution)
+            {
+                //Find the next node to move on
+                Node nextNode = this.GetNextNode(currentNode);
+
+                //If the nextNode corresponds to the end node
+                if(nextNode.Row == this._tplEndingPosition.Item1 && nextNode.Col == this._tplEndingPosition.Item2)
+                {
+                    hasSolution = true;
+                }
+
+                //Set the current node to the next node
+                currentNode = nextNode;
+            }
+
+            //Set the found path property
+            this._pathFound = currentNode;
+
+            //Return the solution
+            return currentNode;
+        }
+
+
+        /// <summary>
+        /// This method takes the current node and 
+        /// returns the next node we should select
+        /// </summary>
+        /// <param name="currentNode">
+        /// The current node we're on
+        /// </param>
+        /// <returns>
+        /// The next node to move to
+        /// </returns>
+        private Node GetNextNode(Node currentNode)
+        {
+            Node nextNode;
+
+            //Find the smallest F-COST of all the potential nodes
+            int smallestFCost = this._lstPotentialNodes.Select(x => x.FCost).Min();
+
+            //Find all the nodes that have this F-Cost
+            List<Node> lstNodesSmallestFCost = this._lstPotentialNodes.Where(x => x.FCost == smallestFCost).ToList();
+
+            //If there is more than a single node with the same F-Cost
+            if(lstNodesSmallestFCost.Count > 1)
+            {
+                //Find the smallest H-Cost
+                int smallestHCost = lstNodesSmallestFCost.Select(x => x.HCost).Min();
+
+                //Find the first node that has this H-Cost
+                //Takes the first without any other consideration because, there are no "better choice" (these nodes would have all the same costs)
+                nextNode = lstNodesSmallestFCost.First(x => x.HCost == smallestHCost);
+            }
+            else
+            {
+                nextNode = lstNodesSmallestFCost[0];
+            }
+
+            //Adds the node to the list of visited nodes
+            this._lstVisitedNodes.Add(nextNode);
+
+            //Check for surrounding nodes and adds them to the potential nodes array
+            this._lstPotentialNodes.AddRange(this.GetSurroundingNodes(nextNode));
+            this._lstPotentialNodes = this._lstPotentialNodes.Where(x => x.Row != nextNode.Row || x.Col != nextNode.Col).ToList();
+
+            currentNode.NextNode = nextNode;
+            return currentNode.NextNode;
+        }
 
         /// <summary>
         /// Takes a node and returns the list of all the nodes
@@ -104,8 +198,8 @@ namespace AStarPathFinding.Classes
                         continue;
                     }
 
-                    int rowToCheck = currentNode.Row + i;
-                    int colToCheck = currentNode.Col + j;
+                    uint rowToCheck = (uint)(currentNode.Row + i);
+                    uint colToCheck = (uint)(currentNode.Col + j);
 
                     //If we're out of bound
                     if(rowToCheck < 0 || colToCheck < 0 || rowToCheck >= this._tplMapDimensions.Item1 || colToCheck >= this._tplMapDimensions.Item2)
@@ -151,7 +245,7 @@ namespace AStarPathFinding.Classes
         /// <returns>
         /// The new node
         /// </returns>
-        private Node CreateNewNode(int row, int col, Node previousNode)
+        private Node CreateNewNode(uint row, uint col, Node previousNode)
         {
             int gCost = this.GetGCost(row, col, previousNode);
             int hCost = this.GetHCost(row, col);
@@ -177,12 +271,12 @@ namespace AStarPathFinding.Classes
         /// <returns>
         /// An int corresponding to the G-Cost of the new node
         /// </returns>
-        private int GetGCost(int rowToGo, int colToGo, Node previousNode)
+        private int GetGCost(uint rowToGo, uint colToGo, Node previousNode)
         {
             int totalGCost = previousNode.GCost;
 
             //If we move diagonally to get to that node
-            if(previousNode.Row != rowToGo || previousNode.Col != colToGo)
+            if(previousNode.Row != rowToGo && previousNode.Col != colToGo)
             {
                 totalGCost += this._movementCost.diagonalMovement;
             }
@@ -207,11 +301,11 @@ namespace AStarPathFinding.Classes
         /// <returns>
         /// An int corresponding to the H-Cost of the new node
         /// </returns>
-        private int GetHCost(int rowToGo, int colToGo)
+        private int GetHCost(uint rowToGo, uint colToGo)
         {
             //Calculates the difference in rows and cols between the current node and the ending node
-            int rowDistanceBetweenCurrentAndEnding = (int)Math.Abs(rowToGo - this._tplEndingPosition.Item1);
-            int colDistanceBetweenCurrentAndEnding = (int)Math.Abs(colToGo - this._tplEndingPosition.Item2);
+            int rowDistanceBetweenCurrentAndEnding = Math.Abs((int)(rowToGo - this._tplEndingPosition.Item1));
+            int colDistanceBetweenCurrentAndEnding = Math.Abs((int)(colToGo - this._tplEndingPosition.Item2));
 
             //Calculates the number of diagonal steps we can make
             int nbInDiagonal = Math.Min(rowDistanceBetweenCurrentAndEnding, colDistanceBetweenCurrentAndEnding);
@@ -236,10 +330,13 @@ namespace AStarPathFinding.Classes
         /// to make them readable to the human eye.
         /// Must be an integer greater or equal to one
         /// </param>
+        /// <param name="showPathFound">
+        /// Boolean that indicates whether we want to show the path that has been found by the algorithm.
+        /// </param>
         /// <returns>
         /// The Bitmap that corresponds to the map
         /// </returns>
-        public Bitmap ExportMapAsBitmap(int scale = 1)
+        public Bitmap ExportMapAsBitmap(int scale = 1, bool showPathFound=false)
         {
             //Checks if the scaling is valid
             if(scale < 1)
@@ -247,10 +344,25 @@ namespace AStarPathFinding.Classes
                 throw new InvalidDataException("The scale must be greater or equal to one.");
             }
 
-            Bitmap bmp = new Bitmap(this._arr2DMap.Length * scale, this._arr2DMap[0].Length * scale);
+            //If the user wants to show the path found but there is none
+            if(showPathFound && this._pathFound == null)
+            {
+                throw new InvalidOperationException("The path has not yet been solved. Please call the FindPath method.");
+            }
+
+            Bitmap bmp = new Bitmap(this._tplMapDimensions.Item2 * scale, this._tplMapDimensions.Item1 * scale);
+
+            //Get all the path positions
+            List<(uint, uint)>? lstPathPosition = new List<(uint, uint)>();
+            Node currentIndexNode = this._pathFound;
+            while(currentIndexNode != null)
+            {
+                lstPathPosition.Add((currentIndexNode.Row, currentIndexNode.Col));
+                currentIndexNode = currentIndexNode.PreviousNode;
+            }
 
             //For each row
-            for(int i = 0;i < this._arr2DMap.Length;i++)
+            for (int i = 0;i < this._arr2DMap.Length;i++)
             {
                 //For each col
                 for (int j = 0; j < this._arr2DMap[i].Length;j++)
@@ -269,7 +381,16 @@ namespace AStarPathFinding.Classes
                     }
                     else if (this._arr2DMap[i][j] == (int)EnumPositionValues.Nothing)      //If it's nothing
                     {
-                        color = Color.White;
+                        //if it's part of the path found
+                        if(showPathFound && lstPathPosition.Where(x => x.Item1 == i && x.Item2 == j).Count() > 0)
+                        {
+                            color = Color.Blue;
+                        }
+                        else //If it's not part of the path
+                        {
+                            color = Color.White;
+                        }
+
                     }
                     else
                     {
@@ -284,7 +405,7 @@ namespace AStarPathFinding.Classes
                     {
                         for(int l = 0;l < scale;l++)
                         {
-                            bmp.SetPixel(pixelRowWithScaling + k, pixelColWithScaling + l, color);
+                            bmp.SetPixel(pixelColWithScaling + l,pixelRowWithScaling + k, color);
                         }
                     }
                 }
