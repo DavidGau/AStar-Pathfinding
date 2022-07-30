@@ -330,13 +330,20 @@ namespace AStarPathFinding.Classes
         /// to make them readable to the human eye.
         /// Must be an integer greater or equal to one
         /// </param>
+        /// <param name="borderRatio">
+        /// Adds borders to each square of the image. The border will not be drawn if there are not enough pixels to
+        /// respect the ratio (based on the scale parameter).
+        /// 
+        /// Note: If we add a 0.1 border on a scaling of 100, it means each square will have a border of 10 pixels
+        /// This means that the distance between two square will be 20 pixels (since both of them will have a border)
+        /// </param>
         /// <param name="showPathFound">
         /// Boolean that indicates whether we want to show the path that has been found by the algorithm.
         /// </param>
         /// <returns>
-        /// The Bitmap that corresponds to the map
+        /// The Bitmap that corresponds to the map.
         /// </returns>
-        public Bitmap ExportMapAsBitmap(int scale = 1, bool showPathFound=false)
+        public Bitmap ExportMapAsBitmap(int scale = 10, double borderRatio=0.1, bool showPathFound=false)
         {
             //Checks if the scaling is valid
             if(scale < 1)
@@ -350,11 +357,21 @@ namespace AStarPathFinding.Classes
                 throw new InvalidOperationException("The path has not yet been solved. Please call the FindPath method.");
             }
 
-            Bitmap bmp = new Bitmap(this._tplMapDimensions.Item2 * scale, this._tplMapDimensions.Item1 * scale);
+            //Calculate the width of the border based on the ratio
+            int borderSize = (int)Math.Floor(scale * borderRatio);
+
+
+            Bitmap bmp = new Bitmap(
+                                        (this._tplMapDimensions.Item2 * scale) + //For all the squares
+                                        (this._tplMapDimensions.Item2 * borderSize * 2 + borderSize * 2), //For all the borders (and adds two borders so that the end square gets a double border on the right)
+                                        
+                                        (this._tplMapDimensions.Item1 * scale) //For all the squares
+                                        + (this._tplMapDimensions.Item1 * borderSize * 2 + borderSize * 2)); //For all the borders (and adds two borders so that the end square gets a double border on the right)
 
             //Get all the path positions
             List<(uint, uint)>? lstPathPosition = new List<(uint, uint)>();
             Node currentIndexNode = this._pathFound;
+
             while(currentIndexNode != null)
             {
                 lstPathPosition.Add((currentIndexNode.Row, currentIndexNode.Col));
@@ -398,8 +415,8 @@ namespace AStarPathFinding.Classes
                     }
 
                     //Adds the color to the right pixels
-                    int pixelRowWithScaling = i * scale;
-                    int pixelColWithScaling = j * scale;
+                    int pixelRowWithScaling = ((i + 1) * borderSize * 2) + (i * scale);
+                    int pixelColWithScaling = ((j + 1) * borderSize * 2) + (j * scale);
 
                     for(int k = 0;k < scale;k++)
                     {
@@ -409,6 +426,7 @@ namespace AStarPathFinding.Classes
                         }
                     }
                 }
+
             }
 
             return bmp;

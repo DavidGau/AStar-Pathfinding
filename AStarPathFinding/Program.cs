@@ -22,10 +22,10 @@ uint[][] arrMap = new uint[][]
 (uint, uint) tplEndingNode = (12, 6);
 
 AStar AStar = new AStar(arrMap, tplStartingNode, tplEndingNode);
-Bitmap bmp = AStar.ExportMapAsBitmap(100);
+Bitmap bmp = AStar.ExportMapAsBitmap(100, showPathFound:false);
 bmp.Save("beforeSolved.png");
 Node path = AStar.FindPath();
-Bitmap bmp1 = AStar.ExportMapAsBitmap(100,true);
+Bitmap bmp1 = AStar.ExportMapAsBitmap(100,showPathFound: true, borderRatio:0.02);
 bmp1.Save("afterSolved.png");
 
 Console.WriteLine("=== End of the program ===");
